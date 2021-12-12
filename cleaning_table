@@ -1,0 +1,153 @@
+CREATE TABLE database1 (
+    est_number varchar(50) CONSTRAINT est_number_key PRIMARY KEY, 
+    company varchar(100),
+    street varchar(100),
+    city varchar(30),
+    st varchar(2),
+    zip varchar(5),
+    phone varchar(14),
+    grant_date date,
+    activities text,
+    dbas text
+);
+
+COPY database1
+FROM 'Z:\MPI_Directory_by_Establishment_Name.csv'
+WITH (FORMAT CSV, HEADER, DELIMITER ',');
+
+-- creating an index to search faster 
+CREATE INDEX company_idx ON database1 (company);
+
+SELECT*FROM database1
+
+-- check if each company has unique address 
+
+SELECT company, street, city, st, COUNT(*) AS address_count
+FROM database1
+GROUP BY company, street, city, st
+HAVING COUNT(*)>1
+-- output shows that some addresses are using by two or more companies 
+-- it is possible that there could have been a mistake when entering data 
+
+
+-- NULL values  in 'st' column 
+
+SELECT st , COUNT(*) AS st_count
+FROM database1
+WHERE st IS NULL
+GROUP BY st;
+-- We got 3 NULL values, let's find out which comapnies do not have fill 'st' record 
+
+SELECT est_number,
+       company,
+       city,
+       st,
+       zip
+FROM database1
+WHERE st IS NULL;
+
+-- check if each company name was written in this same way 
+
+SELECT company, count(*) AS company_count
+FROM database1
+GROUP BY company
+ORDER BY company ASC;
+
+-- lines 97-101: name of company Advance Pierre Food was written in few ways 
+
+-- check length of 'zip' column (in USA ZIP code consists of 5 digits) 
+
+SELECT length(zip),
+	count(*) AS zip_length
+FROM database1
+GROUP BY length(zip)
+ORDER BY length(zip);
+
+-- We got 86 values where zip consists of 3 digits and 496 where zip consists of 4 digits 
+
+
+-- To sum up 
+-- We need to: 
+-- 1. Fill 3 NULL values
+-- 2. Rename name of at least one company 
+-- 3. Set length of zip code as of 5 digits 
+
+-- create copy of tabel 
+
+CREATE TABLE datebase1_copy
+AS SELECT * FROM database1
+
+-- 1. 
+-- creating copy of 'st' column 
+
+ALTER TABLE database1 ADD COLUMN st_copy varchar(2);
+
+UPDATE database1
+SET st_copy = st;
+
+-- filling NULL values base on information form Google about companies
+
+UPDATE database1
+SET st = 'MN'
+WHERE est_number = 'V18677A';
+
+UPDATE database1
+SET st = 'AL'
+WHERE est_number = 'M45319+P45319';
+
+UPDATE database1
+SET st = 'WI'
+WHERE est_number = 'M263A+P263A+V263A';
+
+-- check if 'st' column has still NULL values 
+SELECT st 
+FROM database1
+WHERE st IS NULL
+
+
+-- 2.
+
+ALTER TABLE database1 ADD COLUMN company_copy varchar(100);
+
+UPDATE database1
+SET company_copy = company;
+
+-- update company name starting with Advance as 'AdvancePierre Foods, Inc.'
+
+UPDATE database1
+SET company= 'AdvancePierre Foods, Inc.'
+WHERE company_copy LIKE 'Advance%'; 
+
+-- chcek the output
+
+SELECT company, company_copy 
+FROM database1
+WHERE company LIKE 'Advance%'
+
+-- 3.
+
+-- zip code should be varchar because numeric objects skip '0' at the begining of record
+ALTER TABLE database1 ADD COLUMN zip_copy varchar(5);
+
+UPDATE database1
+SET zip_copy = zip;
+
+
+UPDATE database1
+SET zip = '00' || zip_copy
+WHERE length(zip) = 3 
+
+UPDATE database1
+SET zip = '0' || zip_copy
+WHERE length(zip) = 4 
+
+
+-- check output
+
+SELECT  COUNT(length(zip))
+FROM database1
+GROUP BY length(zip)
+
+SELECT  COUNT(length(zip_copy))
+FROM database1
+GROUP BY length(zip_copy)
