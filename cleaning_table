@@ -151,3 +151,10 @@ GROUP BY length(zip)
 SELECT  COUNT(length(zip_copy))
 FROM database1
 GROUP BY length(zip_copy)
+
+-- drop copy of columns and copy of table database1
+
+ALTER TABLE database1 DROP COLUMN st_copy; 
+ALTER TABLE database1 DROP COLUMN company_copy;
+ALTER TABLE database1 DROP COLUMN zip_copy;
+DROP TABLE datebase1_copy;
